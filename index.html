@@ -134,8 +134,8 @@ const PLAN={
  C:{name:'Día C (volumen)',ex:[
   {id:'c1',n:'Prensa de piernas (volumen)',s:4,rmin:10,rmax:12,w:100,inc:5,unit:'kg',rest:REST_COMP,
    d:'La misma prensa del Día A pero con algo menos de peso y más reps.',yt:'leg press técnica'},
-  {id:'c2',n:'Banco plano (volumen)',s:4,rmin:8,rmax:10,w:40,inc:2.5,unit:'kg',rest:REST_COMP,
-   d:'El mismo banco del Día A pero más liviano y con más reps. Misma técnica estricta.',yt:'press banca técnica'},
+  {id:'c2b',n:'Banco inclinado mancuernas (volumen)',s:4,rmin:10,rmax:12,w:14,inc:2,unit:'kg',rest:REST_COMP,
+   d:'El mismo inclinado del Día B pero más liviano y con más reps. Prioridad: pectoral superior (la zona bajo la clavícula). Bajá profundo y controlado.',yt:'incline dumbbell press'},
   {id:'c3',n:'Jalón al pecho (volumen)',s:4,rmin:10,rmax:12,w:45,inc:2.5,unit:'kg',rest:REST_COMP,
    d:'El mismo jalón del Día B pero más liviano y con más reps.',yt:'lat pulldown técnica'},
   {id:'c4',n:'Leg curl (femoral)',s:3,rmin:10,rmax:12,w:45,inc:2.5,unit:'kg',rest:REST_ISO,
@@ -152,9 +152,15 @@ const ALLEX={}; ORDER.forEach(d=>PLAN[d].ex.forEach(e=>{e.day=d;ALLEX[e.id]=e;})
 
 // ---------- STATE ----------
 const KEY='rutina_fullbody_v2';
-let S=load();
+let S=load();save();
 function load(){
-  try{const s=JSON.parse(localStorage.getItem(KEY));if(s&&s.targets)return s;}catch(e){}
+  try{const s=JSON.parse(localStorage.getItem(KEY));
+    if(s&&s.targets){
+      // migración: si el plan sumó/cambió ejercicios, completar pesos faltantes sin tocar los existentes
+      Object.values(ALLEX).forEach(e=>{if(!(e.id in s.targets))s.targets[e.id]=e.w;});
+      return s;
+    }
+  }catch(e){}
   const t={};Object.values(ALLEX).forEach(e=>t[e.id]=e.w);
   return {next:'A',targets:t,hist:[],draft:null};
 }
