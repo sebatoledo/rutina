@@ -75,6 +75,9 @@ nav button.on{color:var(--acc);font-weight:700}
 #timer button{border:none;background:rgba(0,0,0,.15);border-radius:8px;padding:8px 12px;font-weight:700;font-size:13px;cursor:pointer}
 .spark{width:100%;height:36px;margin-top:4px}
 .hist-item{border-top:1px solid var(--line);padding:10px 0;font-size:14px}
+.hist-item.tap{cursor:pointer;display:flex;align-items:center;gap:8px}
+.chev{margin-left:auto;color:var(--dim);font-size:18px}
+.setline{font-variant-numeric:tabular-nums}
 .muted-sm{font-size:12px;color:var(--dim)}
 .sec-title{font-size:13px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin:18px 0 8px}
 select,input[type=file]{width:100%;padding:12px;border-radius:10px;border:1px solid var(--line);
@@ -316,13 +319,47 @@ function renderHist(){
       <span class="${diff>0?'up':'same'}" style="font-size:12px;color:${diff>0?'var(--ok)':'var(--dim)'}">${diff>0?'+'+fmtW(diff):diff<0?fmtW(diff):'='}</span></div>
       ${spark(pts)}</div>`;
   });
-  h+='<div class="sec-title">Sesiones</div><div class="card">';
-  [...S.hist].reverse().forEach(s=>{
+  h+='<div class="sec-title">Sesiones · tocá una para ver el detalle</div><div class="card">';
+  S.hist.map((s,i)=>({s,i})).reverse().forEach(({s,i})=>{
     const done=Object.values(s.entries).reduce((a,en)=>a+en.sets.filter(x=>x.done).length,0);
-    h+=`<div class="hist-item"><b>${PLAN[s.day].name}</b> — ${fdate(s.date)} <span class="muted-sm">· ${done} series</span></div>`;
+    h+=`<div class="hist-item tap" onclick="showSession(${i})"><b>${PLAN[s.day].name}</b> — ${fdate(s.date)} <span class="muted-sm">· ${done} series</span><span class="chev">›</span></div>`;
   });
   h+='</div>';
   $('view').innerHTML=h;
+}
+function showSession(i){
+  const s=S.hist[i];if(!s)return;
+  setHeader(PLAN[s.day].name+' — detalle',new Date(s.date).toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long',year:'numeric'}));
+  let h='';
+  PLAN[s.day].ex.forEach(e=>{
+    const en=s.entries[e.id];
+    if(!en){return;}
+    const ds=en.sets.filter(x=>x.done);
+    let body;
+    if(ds.length===0){
+      body='<div class="dim">No registrado en esta sesión</div>';
+    }else{
+      const sets=en.sets.map((st,si)=>{
+        if(!st.done)return `<span class="dim">–</span>`;
+        const col=st.v>=e.rmax?'var(--ok)':(st.v<e.rmin?'var(--bad)':'var(--txt)');
+        return `<span style="color:${col};font-weight:700">${st.v}</span>`;
+      }).join(' · ');
+      body=`<div class="row"><span class="grow setline">${e.time?'':'<b>'+fmtW(en.w)+' '+e.unit+'</b> — '}${sets} <span class="dim">${e.time?'seg':'reps'}</span></span>
+        <span class="pill">${ds.length}/${en.sets.length} series</span></div>
+        <div class="muted-sm" style="margin-top:4px">Objetivo: ${e.s}×${repLabel(e)}${ds.length===en.sets.length&&en.sets.every(x=>x.v>=e.rmax)?' · completado al tope ✓':''}</div>`;
+    }
+    h+=`<div class="card" style="padding:12px 14px"><h3 style="font-size:14px;margin-bottom:6px">${esc(e.n)}</h3>${body}</div>`;
+  });
+  const extra=Object.keys(s.entries).filter(id=>!PLAN[s.day].ex.some(e=>e.id===id));
+  extra.forEach(id=>{
+    const en=s.entries[id],ds=en.sets.filter(x=>x.done);
+    if(ds.length===0)return;
+    h+=`<div class="card" style="padding:12px 14px"><h3 style="font-size:14px;margin-bottom:6px">${esc(id)}</h3>
+      <div class="setline"><b>${fmtW(en.w)}</b> — ${ds.map(x=>x.v).join(' · ')} reps</div>
+      <div class="muted-sm">Ejercicio de una versión anterior del plan</div></div>`;
+  });
+  h+=`<button class="btn sec" onclick="go('hist')">‹ Volver al historial</button>`;
+  $('view').innerHTML=h;window.scrollTo(0,0);
 }
 function spark(pts){
   if(pts.length<2)return '<div class="muted-sm">una sesión registrada</div>';
