@@ -330,7 +330,20 @@ function renderHist(){
 function showSession(i){
   const s=S.hist[i];if(!s)return;
   setHeader(PLAN[s.day].name+' — detalle',new Date(s.date).toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long',year:'numeric'}));
-  let h='';
+  let h=`<div class="card"><div style="font-weight:800;margin-bottom:6px">Resumen de la sesión</div>
+  <div class="dim" style="margin-bottom:4px;font-size:12px">Qué cambió para la sesión siguiente:</div>`;
+  PLAN[s.day].ex.forEach(e=>{
+    const en=s.entries[e.id];if(!en)return;
+    const ds=en.sets.filter(x=>x.done);
+    let tag;
+    if(ds.length===0)tag=`<span class="same">no registrado</span>`;
+    else if(e.time)tag=`<span class="same">${Math.max(...ds.map(x=>x.v))} seg máx.</span>`;
+    else if(ds.length===en.sets.length&&en.sets.every(x=>x.v>=e.rmax))tag=`<span class="up">↑ subió a ${fmtW(en.w+e.inc)} ${e.unit}</span>`;
+    else if(ds.filter(x=>x.v<e.rmin).length>=2)tag=`<span class="down">↓ bajó a ${fmtW(Math.max(e.inc,en.w-e.inc))} ${e.unit}</span>`;
+    else tag=`<span class="same">mantuvo ${fmtW(en.w)} ${e.unit}</span>`;
+    h+=`<div class="change"><span class="grow">${esc(e.n)}</span>${tag}</div>`;
+  });
+  h+=`</div><div class="sec-title">Detalle por ejercicio</div>`;
   PLAN[s.day].ex.forEach(e=>{
     const en=s.entries[e.id];
     if(!en){return;}
