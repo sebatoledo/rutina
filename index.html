@@ -115,7 +115,9 @@ const PLAN={
   {id:'a6',n:'Tríceps polea (pushdown)',s:3,rmin:10,rmax:12,w:17.5,inc:2.5,unit:'kg',rest:REST_ISO,
    d:'El de siempre: codos cerca del torso, extendé hasta bloquear.',yt:'triceps pushdown técnica'},
   {id:'a7',n:'Bíceps Scott mancuerna',s:3,rmin:10,rmax:12,w:12,inc:2,unit:'kg',rest:REST_ISO,
-   d:'Tu curl en banco Scott de siempre. Bajá controlado hasta casi estirar el brazo.',yt:'preacher curl técnica'}]},
+   d:'Tu curl en banco Scott de siempre. Bajá controlado hasta casi estirar el brazo.',yt:'preacher curl técnica'},
+  {id:'a8',n:'Reverse crunch (abdomen bajo)',s:3,rmin:10,rmax:15,w:0,inc:0,unit:'',rest:REST_ISO,bw:true,
+   d:'Acostado, rodillas flexionadas: enrollá la pelvis despegando la cadera del piso, llevando las rodillas al pecho. Bajá LENTO. Clave para tu postura: trabaja el abdomen bajo que sostiene la pelvis.',yt:'reverse crunch técnica'}]},
  B:{name:'Día B',ex:[
   {id:'b1',n:'Jalón al pecho (pesado)',s:4,rmin:6,rmax:8,w:50,inc:2.5,unit:'kg',rest:REST_COMP,
    d:'Tu jalón de siempre pero pesado: más carga, menos reps. Pecho afuera, tirá con los codos, no con los brazos.',yt:'lat pulldown técnica'},
@@ -123,6 +125,8 @@ const PLAN={
    d:'Tu banco inclinado de siempre, subiendo de 14 a 16 kg y bajando a 8-10 reps.',yt:'incline dumbbell press'},
   {id:'b3',n:'Press hombros mancuernas (pesado)',s:4,rmin:6,rmax:8,w:12,inc:2,unit:'kg',rest:REST_COMP,
    d:'Tu press de hombros de siempre, subiendo de 10 a 12 kg con rango 6-8. Sin arquear la espalda baja.',yt:'seated dumbbell shoulder press'},
+  {id:'b8',n:'Hip thrust (empuje de cadera)',s:3,rmin:8,rmax:10,w:40,inc:5,unit:'kg',rest:REST_COMP,
+   d:'Espalda alta apoyada en un banco, barra con almohadilla sobre la cadera: empujá con los talones y subí la cadera hasta quedar recto de rodillas a hombros. Apretá el glúteo arriba 1 segundo. Si tu gimnasio tiene máquina de glúteo (glute drive), usala igual. NUEVO: las primeras 2 semanas priorizá técnica sobre peso.',yt:'hip thrust técnica'},
   {id:'b4',n:'Leg extension',s:3,rmin:10,rmax:12,w:50,inc:2.5,unit:'kg',rest:REST_ISO,
    d:'Tu extensión de cuádriceps de siempre. Pausa arriba de 1 segundo.',yt:'leg extension técnica'},
   {id:'b5',n:'Gemelos',s:4,rmin:10,rmax:15,w:110,inc:5,unit:'kg',rest:REST_ISO,
@@ -144,8 +148,12 @@ const PLAN={
    d:'Tu máquina de aductores de siempre.',yt:'hip adduction técnica'},
   {id:'c6',n:'Vuelos laterales',s:3,rmin:12,rmax:15,w:8,inc:2,unit:'kg',rest:REST_ISO,
    d:'Segunda vez en la semana. Mismas reglas: sin impulso.',yt:'lateral raise técnica'},
+  {id:'c8',n:'Gemelos (2ª sesión)',s:3,rmin:10,rmax:15,w:110,inc:5,unit:'kg',rest:REST_ISO,
+   d:'Segunda sesión semanal de gemelos. Mismas reglas: estiramiento completo abajo, pausa de 1 segundo arriba, sin rebotar. Si tu gimnasio tiene gemelo SENTADO, usalo acá (trabaja el sóleo, que da grosor bajo la rodilla) y ajustá el peso.',yt:'seated calf raise técnica'},
   {id:'c7',n:'Bíceps Scott mancuerna',s:3,rmin:10,rmax:12,w:12,inc:2,unit:'kg',rest:REST_ISO,
-   d:'Segunda vez en la semana para bíceps.',yt:'preacher curl técnica'}]}
+   d:'Segunda vez en la semana para bíceps.',yt:'preacher curl técnica'},
+  {id:'c9',n:'Dead bug (core postural)',s:3,rmin:8,rmax:10,w:0,inc:0,unit:'',rest:REST_ISO,bw:true,
+   d:'Boca arriba, brazos al techo y rodillas a 90°: bajá LENTO el brazo y la pierna contrarios sin que la zona lumbar se despegue del piso. Reps POR LADO. Si la lumbar se arquea, acortá el movimiento.',yt:'dead bug técnica'}]}
 };
 const ORDER=['A','B','C'];
 const ALLEX={}; ORDER.forEach(d=>PLAN[d].ex.forEach(e=>{e.day=d;ALLEX[e.id]=e;}));
@@ -219,7 +227,7 @@ function renderSession(){
       <button class="helpbtn" onclick="document.getElementById('h-${e.id}').classList.toggle('show')">técnica</button></div>
       <div class="target">${e.s} series × ${repLabel(e)}</div>
       <div class="help" id="h-${e.id}">${esc(e.d)}<div class="yt">YouTube: "${esc(e.yt)}"</div></div>`;
-    if(!e.time){
+    if(!e.time&&!e.bw){
       h+=`<div class="wrow"><label>Peso</label>
         <input class="w" type="number" inputmode="decimal" step="0.5" value="${en.w}" onchange="setW('${e.id}',this.value)">
         <span class="unit">${e.unit}</span></div>`;
@@ -258,7 +266,7 @@ function finish(){
     const en=d.entries[e.id],ds=en.sets.filter(s=>s.done);
     if(ds.length===0){changes.push({e,type:'skip'});return;}
     any=true;
-    if(e.time){changes.push({e,type:'time'});return;}
+    if(e.time||e.bw){changes.push({e,type:e.time?'time':'bw'});return;}
     if(en.w!==S.targets[e.id])S.targets[e.id]=en.w; // respeta ajuste manual
     const allDone=ds.length===en.sets.length;
     const allTop=allDone&&en.sets.every(s=>s.v>=e.rmax);
@@ -284,6 +292,7 @@ function renderSummary(changes){
     else if(c.type==='down')tag=`<span class="down">↓ baja a ${fmtW(t)} ${c.e.unit}</span>`;
     else if(c.type==='skip')tag=`<span class="same">no registrado</span>`;
     else if(c.type==='time')tag=`<span class="same">seguí sumando segundos</span>`;
+    else if(c.type==='bw')tag=`<span class="same">seguí sumando reps</span>`;
     else tag=`<span class="same">mantiene ${fmtW(t)} ${c.e.unit} — a buscar más reps</span>`;
     h+=`<div class="change"><span class="grow">${esc(c.e.n)}</span>${tag}</div>`;
   });
@@ -300,7 +309,7 @@ function renderPlan(){
     PLAN[dk].ex.forEach(e=>{
       h+=`<div class="card"><div class="row"><h3 class="grow" style="font-size:14px">${esc(e.n)}</h3>
         <span class="pill">${e.s}×${repLabel(e)}</span></div>
-        <div class="target">${e.time?'peso corporal':'actual: '+fmtW(S.targets[e.id])+' '+e.unit}</div>
+        <div class="target">${(e.time||e.bw)?'peso corporal':'actual: '+fmtW(S.targets[e.id])+' '+e.unit}</div>
         <div class="dim" style="line-height:1.45">${esc(e.d)}</div>
         <div class="dim" style="margin-top:6px;font-style:italic;color:var(--acc)">YouTube: "${esc(e.yt)}"</div></div>`;
     });
@@ -314,7 +323,7 @@ function renderHist(){
   if(S.hist.length===0){$('view').innerHTML='<div class="card dim">Todavía no hay entrenamientos guardados. Cuando termines el primero, acá vas a ver tu progreso.</div>';return;}
   let h='<div class="sec-title">Progresión de cargas</div>';
   Object.values(ALLEX).forEach(e=>{
-    if(e.time)return;
+    if(e.time||e.bw)return;
     const pts=S.hist.filter(s=>s.entries[e.id]&&s.entries[e.id].sets.some(x=>x.done)).map(s=>s.entries[e.id].w);
     if(pts.length<1)return;
     const first=pts[0],lastv=pts[pts.length-1];
@@ -344,6 +353,7 @@ function showSession(i){
     let tag;
     if(ds.length===0)tag=`<span class="same">no registrado</span>`;
     else if(e.time)tag=`<span class="same">${Math.max(...ds.map(x=>x.v))} seg máx.</span>`;
+    else if(e.bw)tag=`<span class="same">${Math.max(...ds.map(x=>x.v))} reps máx.</span>`;
     else if(ds.length===en.sets.length&&en.sets.every(x=>x.v>=e.rmax))tag=`<span class="up">↑ subió a ${fmtW(en.w+e.inc)} ${e.unit}</span>`;
     else if(ds.filter(x=>x.v<e.rmin).length>=2)tag=`<span class="down">↓ bajó a ${fmtW(Math.max(e.inc,en.w-e.inc))} ${e.unit}</span>`;
     else tag=`<span class="same">mantuvo ${fmtW(en.w)} ${e.unit}</span>`;
@@ -363,7 +373,7 @@ function showSession(i){
         const col=st.v>=e.rmax?'var(--ok)':(st.v<e.rmin?'var(--bad)':'var(--txt)');
         return `<span style="color:${col};font-weight:700">${st.v}</span>`;
       }).join(' · ');
-      body=`<div class="row"><span class="grow setline">${e.time?'':'<b>'+fmtW(en.w)+' '+e.unit+'</b> — '}${sets} <span class="dim">${e.time?'seg':'reps'}</span></span>
+      body=`<div class="row"><span class="grow setline">${(e.time||e.bw)?'':'<b>'+fmtW(en.w)+' '+e.unit+'</b> — '}${sets} <span class="dim">${e.time?'seg':'reps'}</span></span>
         <span class="pill">${ds.length}/${en.sets.length} series</span></div>
         <div class="muted-sm" style="margin-top:4px">Objetivo: ${e.s}×${repLabel(e)}${ds.length===en.sets.length&&en.sets.every(x=>x.v>=e.rmax)?' · completado al tope ✓':''}</div>`;
     }
